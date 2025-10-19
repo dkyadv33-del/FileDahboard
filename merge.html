@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Excel All Sheets Merger - Offline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2d3436;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input[type="file"] {
+      display: block;
+      margin: 10px 0;
+    }
+    button {
+      background: #0984e3;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #74b9ff;
+    }
+    #result {
+      margin-top: 20px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Excel All Sheets Merger (Offline)</h1>
+  <div class="container">
+    <p>Multiple Excel files select kijiye 👇</p>
+    <input type="file" id="files" accept=".xlsx, .xls" multiple />
+    <button onclick="mergeAllSheets()">Merge All Sheets & Download</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function mergeAllSheets() {
+      const files = Array.from(document.getElementById('files').files);
+      if (files.length < 1) {
+        alert('Kam se kam 1 Excel file select kijiye!');
+        return;
+      }
+
+      let mergedData = [];
+      let readCount = 0;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            let sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            // Agar sheet me kuch data ho
+            if (sheetData.length > 0) {
+              // Har row ke start me sheet ka naam daalna
+              sheetData = sheetData.map((row, index) => {
+                // Agar row khali hai to empty array se handle
+                const r = Array.isArray(row) ? row : [];
+                r.unshift(index === 0 ? `Sheet: ${sheetName}` : sheetName);
+                return r;
+              });
+
+              mergedData = mergedData.concat(sheetData);
+              // Ek blank row sheet ke end me for separation
+              mergedData.push([]);
+            }
+          });
+
+          readCount++;
+          if (readCount === files.length) {
+            downloadMergedFile(mergedData);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function downloadMergedFile(mergedData) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(mergedData);
+      XLSX.utils.book_append_sheet(wb, ws, "All_Merged_Data");
+      XLSX.writeFile(wb, "Merged_All_Sheets.xlsx");
+      document.getElementById('result').innerText = "✅ Sabhi sheets merge ho gayi — File download ho gayi!";
+    }
+  </script>
+</body>
+</html>

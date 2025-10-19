@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - File Processor</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <!-- 🌟 Background Video (Desktop) -->
+  <video autoplay muted loop playsinline id="desktopVideo" class="bg-video">
+    <source src="dashboard.mp4" type="video/mp4">
+  </video>
+
+  <!-- 📱 Background Video (Mobile) -->
+  <video autoplay muted loop playsinline id="mobileVideo" class="bg-video">
+    <source src="dashboard mobile.mp4" type="video/mp4">
+  </video>
+
+  <div class="overlay"></div>
+
+  <div class="dashboard-container">
+    <h1>📊 File Processing Dashboard</h1>
+    <div class="card-container">
+      <div class="card" onclick="window.location.href='filter.html'">
+        <h2>💰 One Rupee File</h2>
+        <p>Merge & process bank details smartly</p>
+      </div>
+      <div class="card" onclick="window.location.href='pan.html'">
+        <h2>🪙 PAN File</h2>
+        <p>Check & extract PAN Numbers</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 📱 Mobile/Desktop ke liye alag background video show
+    const desktopVideo = document.getElementById('desktopVideo');
+    const mobileVideo = document.getElementById('mobileVideo');
+
+    if (window.innerWidth <= 768) {
+      desktopVideo.style.display = 'none';
+      mobileVideo.style.display = 'block';
+    } else {
+      desktopVideo.style.display = 'block';
+      mobileVideo.style.display = 'none';
+    }
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 768) {
+        desktopVideo.style.display = 'none';
+        mobileVideo.style.display = 'block';
+      } else {
+        desktopVideo.style.display = 'block';
+        mobileVideo.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

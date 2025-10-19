@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PAN Link Filter - Glass Theme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="pan-style.css">
+</head>
+<body>
+  <!-- 🔸 Background Video -->
+  <video autoplay muted loop id="bg-video">
+    <source src="" type="video/mp4" id="video-source">
+  </video>
+  <div class="overlay"></div>
+
+  <!-- 🔸 Main Container -->
+  <div class="container">
+    <h1>🪙 PAN Link Filter Tool</h1>
+    <p>Upload Excel file 👇</p>
+    <input type="file" id="files" accept=".xlsx, .xls,.csv" multiple />
+    <div class="button-group">
+    <button onclick="processFiles()">Filter & Download</button>
+    <button onclick="window.location.href='index.html'">🏠 Back to Dashboard</button >
+    <div id="result"></div>
+  </div>
+
+  <!-- 🕵️‍♂️ Detective Animation Modal -->
+  <div id="loader-modal" class="loader-modal hidden">
+    <div class="detective">
+      🕵️‍♂️
+    </div>
+    <p class="detective-text">Detective checking PAN Link Status...</p>
+    <div class="book">
+      📖
+    </div>
+  </div>
+
+  <script>
+    // ✅ Background Video Switch (mobile vs desktop)
+    const videoSource = document.getElementById('video-source');
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      videoSource.src = "panmobile.mp4"; 
+    } else {
+      videoSource.src = "panmobile.mp4";
+    }
+    document.getElementById('bg-video').load();
+
+    // ✅ Function to find PAN Link Status value
+    function findLinkValue(row) {
+      const linkHeaders = [
+        "link status", "pan link status", "aadhaar link status", 
+        "aadhar link status", "status", "link"
+      ];
+      let found = "";
+      for (let key in row) {
+        let lowerKey = key.toLowerCase().trim();
+        if (linkHeaders.some(h => lowerKey.includes(h))) {
+          if (row[key]) {
+            found = row[key].toString().trim();
+            break;
+          }
+        }
+      }
+      return found;
+    }
+
+    function processFiles() {
+      const files = Array.from(document.getElementById('files').files);
+      if (files.length < 1) {
+        alert('📎 Kam se kam 1 Excel file select kijiye!');
+        return;
+      }
+
+      showLoader(); // Detective animation start
+
+      let finalData = [["S.No.", "PAN Number", "Sheet Name"]];
+      let processed = 0;
+      let srNo = 1;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+            if (sheetData.length === 0) return;
+
+            sheetData.forEach(row => {
+              const panNumber = (row["PAN Number"] || row["PAN No"] || row["Pan"] || "").toString().trim();
+              const linkValue = findLinkValue(row);
+
+              // ✅ Condition — Agar link value blank hai tabhi PAN Number add kare
+              if (panNumber !== "" && linkValue === "") {
+                finalData.push([srNo++, panNumber, sheetName]);
+              }
+            });
+          });
+
+          processed++;
+          if (processed === files.length) {
+            setTimeout(() => {
+              downloadExcel(finalData);
+              hideLoader();
+            }, 3000);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function downloadExcel(data) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+
+      // 🧼 Clean spaces
+      Object.keys(ws).forEach(key => {
+        if (key[0] === '!') return;
+        if (typeof ws[key].v === 'string') {
+          ws[key].v = ws[key].v.replace(/\s+/g, ' ').trim();
+        }
+      });
+
+      XLSX.utils.book_append_sheet(wb, ws, "Filtered_PAN");
+      XLSX.writeFile(wb, "Filtered_PAN_Data.xlsx");
+      document.getElementById('result').innerText = "✅ PAN Filtered Excel file download ho gayi!";
+    }
+
+    function showLoader() {
+      document.getElementById('loader-modal').classList.remove('hidden');
+    }
+
+    function hideLoader() {
+      document.getElementById('loader-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
