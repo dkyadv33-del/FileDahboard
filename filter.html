@@ -207,14 +207,17 @@
     // ✅ Detect “Name At Bank” column (all variants)
     function findNameAtBankCol(headers) {
       return headers.find(k =>
-        headerIncludes(k, ["name at bank", "nameatbank", "name bank", "name the bank"])
+        headerIncludes(k, ["name at bank", "nameatbank", "name bank", "name the bank","Name At Bank
+","Name At Bank
+"])
       );
     }
 
     // ✅ Detect Bank & IFSC columns
     function findBankKeys(headers) {
       const bankCol = headers.find(k =>
-        headerIncludes(k, ["bank account", "account number", "ac number", "a c no", "account no", "ac no", "bank acc", "bank no"])
+        headerIncludes(k, ["bank account", "account number", "ac number", "a c no", "account no", "ac no", "bank acc", "bank no","Bank Account Number
+"])
       );
       const ifscCol = headers.find(k =>
         headerIncludes(k, ["ifsc", "ifsc code", "ifs code"])
@@ -308,3 +311,4 @@
   </script>
 </body>
 </html>
+
