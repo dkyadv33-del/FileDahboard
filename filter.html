@@ -4,100 +4,266 @@
   <meta charset="UTF-8" />
   <title>Excel Filter Tool - Glass Theme</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- XLSX Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- External CSS -->
   <link rel="stylesheet" href="filter.css">
+
+  <style>
+    /* 🔹 Optional Additions for Dashboard Button + Loader Styling */
+    body {
+      font-family: "Poppins", sans-serif;
+      color: #f8f9fa;
+      overflow-x: hidden;
+      text-align: center;
+    }
+
+    video#bg-video {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      min-width: 100%;
+      min-height: 100%;
+      object-fit: cover;
+      z-index: -2;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: -1;
+    }
+
+    .container {
+      backdrop-filter: blur(20px) saturate(160%);
+      background-color: rgba(255, 255, 255, 0.15);
+      margin: 8% auto;
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 500px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 1.5s ease;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] {
+      margin: 15px 0;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      width: 90%;
+      cursor: pointer;
+    }
+
+    button {
+      border: none;
+      padding: 12px 25px;
+      margin: 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #00b4db, #0083b0);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    /* ✨ Animated “Back to Dashboard” Button */
+    .back-btn {
+      background: linear-gradient(135deg, #ff4b2b, #ff416c);
+      animation: pulseGlow 2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 10px rgba(255, 65, 108, 0.3); }
+      100% { box-shadow: 0 0 25px rgba(255, 65, 108, 0.9); }
+    }
+
+    /* 🕵️ Loader Modal */
+    .loader-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+    }
+
+    .loader-modal.hidden {
+      display: none;
+    }
+
+    .detective {
+      font-size: 3rem;
+      animation: detectiveBounce 1.2s infinite alternate;
+    }
+
+    @keyframes detectiveBounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-15px); }
+    }
+
+    .detective-text {
+      margin-top: 10px;
+      font-size: 1.1rem;
+    }
+
+    #result {
+      margin-top: 15px;
+      color: #00ffae;
+      font-weight: 600;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
 </head>
+
 <body>
   <!-- 🔸 Background Video -->
   <video autoplay muted loop id="bg-video">
     <source src="" type="video/mp4" id="video-source">
   </video>
-
   <div class="overlay"></div>
 
   <!-- 🔸 Main Container -->
   <div class="container">
     <h1>📊 RS One Rupee File</h1>
     <p>Upload Excel file 👇</p>
-    <input type="file" id="files" accept=".xlsx, .xls,.csv" multiple />
+    <input type="file" id="files" accept=".xlsx, .xls, .csv" multiple />
     <div class="button-group">
-    <button onclick="processFiles()">Filter & Download</button>
-    <button onclick="window.location.href='index.html'">🏠 Back to Dashboard</button >
+      <button onclick="processFiles()">🔍 Filter & Download</button>
+      <button class="back-btn" onclick="goBack()">🏠 Back to Dashboard</button>
+    </div>
     <div id="result"></div>
+    <div id="summary" style="margin-top:10px;color:#ccc;font-size:0.9rem;"></div>
   </div>
 
-  <!-- 🕵️‍♂️ Detective Animation Modal -->
+  <!-- 🕵️‍♂️ Detective Loader -->
   <div id="loader-modal" class="loader-modal hidden">
-    <div class="detective">
-      🕵️‍♂️
-    </div>
-    <p class="detective-text">Detective searching your file...</p>
-    <div class="book">
-      📚
-    </div>
+    <div class="detective">🕵️‍♂️</div>
+    <p class="detective-text">Detective searching your files...</p>
+    <div class="book">📚</div>
   </div>
 
   <script>
-    // ✅ Background video switcher (mobile vs desktop)
+    // ✅ Background video switcher
     const videoSource = document.getElementById('video-source');
     if (/Mobi|Android/i.test(navigator.userAgent)) {
-      videoSource.src = "onerupeemobile.mp4"; // mobile video
+      videoSource.src = "onerupeemobile.mp4";
     } else {
-      videoSource.src = "1rs.mp4"; // desktop video
+      videoSource.src = "1rs.mp4";
     }
     document.getElementById('bg-video').load();
 
-    // ✅ Smart Mobile Number Detection
-    function findMobileValue(row) {
-      let mobileHeaders = [
-        "mobile number", "mobile", "phone number", "contact number",
-        "mobile no", "mobile number 1", "contact", "phone"
-      ];
-
-      let found = "";
-      for (let key in row) {
-        let lowerKey = key.toLowerCase().trim();
-        if (mobileHeaders.some(h => lowerKey.includes(h))) {
-          if (row[key]) {
-            found = row[key].toString().trim();
-            break;
-          }
-        }
-      }
-      return found;
+    // ✅ Helper: Normalize key names
+    function normalizeKey(key) {
+      return key.toLowerCase().replace(/[^a-z0-9]/g, " ").trim();
     }
 
-    // ✅ Process Excel Files
+    // ✅ Mobile number detector
+    function findMobileValue(row) {
+      const patterns = [
+        "mobile", "phone", "contact"
+      ];
+      for (let key in row) {
+        const nk = normalizeKey(key);
+        if (patterns.some(p => nk.includes(p))) {
+          if (row[key]) return row[key].toString().trim();
+        }
+      }
+      return "";
+    }
+
+    // ✅ Header fuzzy finder
+    function headerIncludes(key, patterns) {
+      const nk = normalizeKey(key);
+      return patterns.some(p => nk.includes(p));
+    }
+
+    // ✅ Detect “Name At Bank” column (all variants)
+    function findNameAtBankCol(headers) {
+      return headers.find(k =>
+        headerIncludes(k, ["name at bank", "nameatbank", "name bank", "name the bank"])
+      );
+    }
+
+    // ✅ Detect Bank & IFSC columns
+    function findBankKeys(headers) {
+      const bankCol = headers.find(k =>
+        headerIncludes(k, ["bank account", "account number", "ac number", "a c no", "account no", "ac no", "bank acc", "bank no"])
+      );
+      const ifscCol = headers.find(k =>
+        headerIncludes(k, ["ifsc", "ifsc code", "ifs code"])
+      );
+      return { bankCol, ifscCol };
+    }
+
+    // ✅ Process Excel files
     function processFiles() {
       const files = Array.from(document.getElementById('files').files);
       if (files.length < 1) {
-        alert('📎 Kam se kam 1 Excel file select kijiye!');
+        alert("📎 Kam se kam 1 Excel file select kijiye!");
         return;
       }
 
-      showLoader(); // Detective animation start
+      showLoader();
 
       let finalData = [["S.No.", "Bank Account Number", "IFSC Code", "Mobile Number", "Sheet Name"]];
-      let processed = 0;
-      let srNo = 1;
+      let processed = 0, srNo = 1;
+      let totalSheets = 0, skippedSheets = 0;
 
       files.forEach(file => {
         const reader = new FileReader();
         reader.onload = function(e) {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          wb.SheetNames.forEach(sheetName => {
+            totalSheets++;
+            const sheet = wb.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            if (data.length === 0) return;
 
-          workbook.SheetNames.forEach(sheetName => {
-            const sheet = workbook.Sheets[sheetName];
-            const sheetData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            const headers = Object.keys(data[0]);
+            const { bankCol, ifscCol } = findBankKeys(headers);
+            if (!bankCol || !ifscCol) { skippedSheets++; return; }
 
-            if (sheetData.length === 0) return;
+            const nameAtBankCol = findNameAtBankCol(headers);
 
-            sheetData.forEach(row => {
-              const bankAcc = (row["Bank Account Number"] || "").toString().trim();
-              const ifsc = (row["IFSC Code"] || row["IFSC"] || "").toString().trim();
+            data.forEach(row => {
+              const bankAcc = (row[bankCol] || "").toString().trim();
+              const ifsc = (row[ifscCol] || "").toString().trim();
               const mobile = findMobileValue(row);
-              finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+              if (!bankAcc || !ifsc) return;
+
+              if (nameAtBankCol) {
+                const val = (row[nameAtBankCol] || "").toString().trim();
+                if (val === "") finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+              } else {
+                finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+              }
             });
           });
 
@@ -106,35 +272,38 @@
             setTimeout(() => {
               downloadExcel(finalData);
               hideLoader();
-            }, 3000); // loader ko 3 sec tak dikhana
+              document.getElementById("summary").innerHTML =
+                `📄 Total Sheets: <b>${totalSheets}</b> | ✅ Processed: <b>${totalSheets - skippedSheets}</b> | 🚫 Skipped: <b>${skippedSheets}</b>`;
+            }, 3000);
           }
         };
         reader.readAsArrayBuffer(file);
       });
     }
 
+    // ✅ Download filtered Excel
     function downloadExcel(data) {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(data);
-
-      Object.keys(ws).forEach(key => {
-        if (key[0] === '!') return;
-        if (typeof ws[key].v === 'string') {
-          ws[key].v = ws[key].v.replace(/\s+/g, ' ').trim();
-        }
-      });
-
       XLSX.utils.book_append_sheet(wb, ws, "Filtered_Data");
       XLSX.writeFile(wb, "Filtered_Excel_Data.xlsx");
       document.getElementById('result').innerText = "✅ Filtered Excel file download ho gayi!";
     }
 
-    // ✅ Loader Control
+    // ✅ Loader control
     function showLoader() {
       document.getElementById('loader-modal').classList.remove('hidden');
     }
     function hideLoader() {
       document.getElementById('loader-modal').classList.add('hidden');
+    }
+
+    // ✅ Back button animation handler
+    function goBack() {
+      const btn = document.querySelector(".back-btn");
+      btn.innerHTML = "🏃 Redirecting...";
+      btn.style.transform = "scale(0.9)";
+      setTimeout(() => window.location.href = "index.html", 1000);
     }
   </script>
 </body>
