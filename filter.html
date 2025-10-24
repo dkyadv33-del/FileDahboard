@@ -5,14 +5,11 @@
   <title>Excel Filter Tool - Glass Theme</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- XLSX Library -->
+  <!-- ✅ XLSX Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-  <!-- External CSS -->
-  <link rel="stylesheet" href="filter.css">
-
   <style>
-    /* 🔹 Optional Additions for Dashboard Button + Loader Styling */
+    /* 🔹 Glass Dashboard Styling */
     body {
       font-family: "Poppins", sans-serif;
       color: #f8f9fa;
@@ -85,7 +82,6 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
 
-    /* ✨ Animated “Back to Dashboard” Button */
     .back-btn {
       background: linear-gradient(135deg, #ff4b2b, #ff416c);
       animation: pulseGlow 2s infinite alternate;
@@ -96,7 +92,6 @@
       100% { box-shadow: 0 0 25px rgba(255, 65, 108, 0.9); }
     }
 
-    /* 🕵️ Loader Modal */
     .loader-modal {
       position: fixed;
       top: 0; left: 0;
@@ -166,7 +161,6 @@
   <div id="loader-modal" class="loader-modal hidden">
     <div class="detective">🕵️‍♂️</div>
     <p class="detective-text">Detective searching your files...</p>
-    <div class="book">📚</div>
   </div>
 
   <script>
@@ -179,16 +173,14 @@
     }
     document.getElementById('bg-video').load();
 
-    // ✅ Helper: Normalize key names
+    // ✅ Utility: Normalize column names
     function normalizeKey(key) {
       return key.toLowerCase().replace(/[^a-z0-9]/g, " ").trim();
     }
 
-    // ✅ Mobile number detector
+    // ✅ Detect mobile column
     function findMobileValue(row) {
-      const patterns = [
-        "mobile", "phone", "contact"
-      ];
+      const patterns = ["mobile", "phone", "contact"];
       for (let key in row) {
         const nk = normalizeKey(key);
         if (patterns.some(p => nk.includes(p))) {
@@ -198,26 +190,37 @@
       return "";
     }
 
-    // ✅ Header fuzzy finder
+    // ✅ Header matcher
     function headerIncludes(key, patterns) {
       const nk = normalizeKey(key);
       return patterns.some(p => nk.includes(p));
     }
 
-    // ✅ Detect “Name At Bank” column (all variants)
+    // ✅ Detect Name At Bank column
     function findNameAtBankCol(headers) {
       return headers.find(k =>
-        headerIncludes(k, ["name at bank", "nameatbank", "name bank", "name the bank","Name At Bank
-","Name At Bank
-"])
+        headerIncludes(k, [
+          "name at bank",
+          "nameatbank",
+          "name bank",
+          "name the bank"
+        ])
       );
     }
 
-    // ✅ Detect Bank & IFSC columns
+    // ✅ Detect Bank Account and IFSC
     function findBankKeys(headers) {
       const bankCol = headers.find(k =>
-        headerIncludes(k, ["bank account", "account number", "ac number", "a c no", "account no", "ac no", "bank acc", "bank no","Bank Account Number
-"])
+        headerIncludes(k, [
+          "bank account",
+          "account number",
+          "ac number",
+          "a c no",
+          "account no",
+          "ac no",
+          "bank acc",
+          "bank no"
+        ])
       );
       const ifscCol = headers.find(k =>
         headerIncludes(k, ["ifsc", "ifsc code", "ifs code"])
@@ -242,33 +245,44 @@
       files.forEach(file => {
         const reader = new FileReader();
         reader.onload = function(e) {
-          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-          wb.SheetNames.forEach(sheetName => {
-            totalSheets++;
-            const sheet = wb.Sheets[sheetName];
-            const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-            if (data.length === 0) return;
+          try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            wb.SheetNames.forEach(sheetName => {
+              totalSheets++;
+              const sheet = wb.Sheets[sheetName];
+              const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+              if (data.length === 0) return;
 
-            const headers = Object.keys(data[0]);
-            const { bankCol, ifscCol } = findBankKeys(headers);
-            if (!bankCol || !ifscCol) { skippedSheets++; return; }
+              const headers = Object.keys(data[0]);
+              const { bankCol, ifscCol } = findBankKeys(headers);
 
-            const nameAtBankCol = findNameAtBankCol(headers);
+              console.log("📄 Sheet:", sheetName, "| Headers:", headers);
+              console.log("Detected:", { bankCol, ifscCol });
 
-            data.forEach(row => {
-              const bankAcc = (row[bankCol] || "").toString().trim();
-              const ifsc = (row[ifscCol] || "").toString().trim();
-              const mobile = findMobileValue(row);
-              if (!bankAcc || !ifsc) return;
-
-              if (nameAtBankCol) {
-                const val = (row[nameAtBankCol] || "").toString().trim();
-                if (val === "") finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
-              } else {
-                finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+              if (!bankCol || !ifscCol) {
+                skippedSheets++;
+                return;
               }
+
+              const nameAtBankCol = findNameAtBankCol(headers);
+
+              data.forEach(row => {
+                const bankAcc = (row[bankCol] || "").toString().trim();
+                const ifsc = (row[ifscCol] || "").toString().trim();
+                const mobile = findMobileValue(row);
+                if (!bankAcc || !ifsc) return;
+
+                if (nameAtBankCol) {
+                  const val = (row[nameAtBankCol] || "").toString().trim();
+                  if (val === "") finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+                } else {
+                  finalData.push([srNo++, bankAcc, ifsc, mobile, sheetName]);
+                }
+              });
             });
-          });
+          } catch (err) {
+            console.error("❌ Error reading file:", file.name, err);
+          }
 
           processed++;
           if (processed === files.length) {
@@ -277,7 +291,7 @@
               hideLoader();
               document.getElementById("summary").innerHTML =
                 `📄 Total Sheets: <b>${totalSheets}</b> | ✅ Processed: <b>${totalSheets - skippedSheets}</b> | 🚫 Skipped: <b>${skippedSheets}</b>`;
-            }, 3000);
+            }, 2000);
           }
         };
         reader.readAsArrayBuffer(file);
@@ -301,7 +315,7 @@
       document.getElementById('loader-modal').classList.add('hidden');
     }
 
-    // ✅ Back button animation handler
+    // ✅ Back button redirect
     function goBack() {
       const btn = document.querySelector(".back-btn");
       btn.innerHTML = "🏃 Redirecting...";
@@ -311,4 +325,3 @@
   </script>
 </body>
 </html>
-
